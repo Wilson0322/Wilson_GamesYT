@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crece en Redes Sociales</title>
+    <link rel="icon" href="wilson-removebg-preview.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            margin-bottom: 1rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #405DE6;
+        }
+
+        button {
+            background: #405DE6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #833AB4;
+            transform: translateY(-2px);
+        }
+
+        .results {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+            display: none;
+        }
+
+        .results h2 {
+            color: #405DE6;
+            margin-bottom: 1rem;
+        }
+
+        .tips {
+            text-align: left;
+            padding: 1rem;
+        }
+
+        .tips li {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .shared-links {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .shared-links h2 {
+            color: #405DE6;
+            margin-bottom: 1rem;
+        }
+
+        .link-card {
+            background: white;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .link-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .link-card a {
+            color: #405DE6;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .expiry {
+            color: #dc3545;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .link-card {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .link-info {
+                width: 100%;
+            }
+        }
+
+        .copy-button {
+            background: #28a745;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .copy-button:hover {
+            background: #218838;
+        }
+
+        .no-links {
+            color: #666;
+            font-style: italic;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Crece en Redes Sociales</h1>
+        <div class="input-group">
+            <input type="text" id="socialInput" placeholder="Ingresa tu usuario o link de red social" required>
+            <button onclick="shareSocial()">Compartir Perfil</button>
+            <button onclick="analyzeSocial()">Analizar Perfil</button>
+        </div>
+        <div class="shared-links">
+            <h2>🔗 Links Compartidos</h2>
+            <div id="sharedLinksList"></div>
+        </div>
+        <div class="results" id="results">
+            <h2>Recomendaciones Personalizadas</h2>
+            <div class="tips">
+                <ul id="tipsList">
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constantes
+        const DAYS_TO_EXPIRE = 7;
+        const MS_PER_DAY = 86400000; // 24 * 60 * 60 * 1000
+
+        // Inicializar localStorage si es necesario
+        if (!localStorage.getItem('sharedLinks')) {
+            localStorage.setItem('sharedLinks', JSON.stringify([]));
+        }
+
+        // Función para limpiar links expirados
+        function cleanExpiredLinks() {
+            const sharedLinks = JSON.parse(localStorage.getItem('sharedLinks'));
+            const currentTime = new Date().getTime();
+            
+            const validLinks = sharedLinks.filter(link => {
+                const linkTime = new Date(link.timestamp).getTime();
+                return (currentTime - linkTime) < (DAYS_TO_EXPIRE * MS_PER_DAY);
+            });
+            
+            localStorage.setItem('sharedLinks', JSON.stringify(validLinks));
+            return validLinks;
+        }
+
+        function shareSocial() {
+            const input = document.getElementById('socialInput').value;
+            if (!input) {
+                alert('Por favor ingresa un usuario o link válido');
+                return;
+            }
+
+            // Limpiar links expirados primero
+            const sharedLinks = cleanExpiredLinks();
+            
+            // Agregar nuevo link con timestamp
+            const newLink = {
+                url: input,
+                timestamp: new Date().toISOString(),
+                id: Date.now()
+            };
+            
+            sharedLinks.unshift(newLink);
+            
+            // Mantener solo los últimos 10 links
+            if (sharedLinks.length > 10) {
+                sharedLinks.pop();
+            }
+            
+            // Guardar en localStorage
+            localStorage.setItem('sharedLinks', JSON.stringify(sharedLinks));
+            
+            // Actualizar la vista
+            displaySharedLinks();
+            
+            // Limpiar input
+            document.getElementById('socialInput').value = '';
+        }
+
+        function displaySharedLinks() {
+            const sharedLinks = cleanExpiredLinks();
+            const container = document.getElementById('sharedLinksList');
+            container.innerHTML = '';
+
+            if (sharedLinks.length === 0) {
+                container.innerHTML = '<div class="no-links">No hay links compartidos actualmente</div>';
+                return;
+            }
+
+            sharedLinks.forEach(link => {
+                const card = document.createElement('div');
+                card.className = 'link-card';
+                
+                // Convertir URLs en enlaces clicables
+                const isUrl = link.url.startsWith('http://') || link.url.startsWith('https://');
+                const linkText = isUrl ? 
+                    `<a href="${link.url}" target="_blank">${link.url}</a>` : 
+                    link.url;
+
+                // Calcular tiempo restante
+                const linkTime = new Date(link.timestamp).getTime();
+                const currentTime = new Date().getTime();
+                const daysLeft = Math.ceil((DAYS_TO_EXPIRE * MS_PER_DAY - (currentTime - linkTime)) / MS_PER_DAY);
+                
+                card.innerHTML = `
+                    <div class="link-info">
+                        <div>${linkText}</div>
+                        <span class="timestamp">Compartido: ${new Date(link.timestamp).toLocaleString()}</span>
+                        <span class="expiry">Expira en: ${daysLeft} día${daysLeft !== 1 ? 's' : ''}</span>
+                    </div>
+                    <button class="copy-button" onclick="copyToClipboard('${link.url}')">
+                        Copiar
+                    </button>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('¡Link copiado al portapapeles!');
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+            });
+        }
+
+        function analyzeSocial() {
+            const input = document.getElementById('socialInput').value;
+            const results = document.getElementById('results');
+            const tipsList = document.getElementById('tipsList');
+            
+            if (!input) {
+                alert('Por favor ingresa un usuario o link válido');
+                return;
+            }
+
+            tipsList.innerHTML = '';
+
+            const tips = [
+                "📈 Publica contenido regularmente, al menos 3 veces por semana",
+                "🎯 Utiliza hashtags relevantes para aumentar tu visibilidad",
+                "💬 Interactúa con tus seguidores respondiendo comentarios",
+                "📊 Analiza tus estadísticas para conocer las mejores horas para publicar",
+                "🎨 Mantén una estética coherente en tu perfil",
+                "📱 Aprovecha todas las funciones de la plataforma (Stories, Reels, etc.)",
+                "🤝 Colabora con otros creadores de contenido",
+                "✨ Optimiza tu biografía con información clara y enlaces relevantes"
+            ];
+
+            const shuffledTips = tips.sort(() => Math.random() - 0.5);
+            shuffledTips.slice(0, 5).forEach(tip => {
+                const li = document.createElement('li');
+                li.textContent = tip;
+                tipsList.appendChild(li);
+            });
+
+            results.style.display = 'block';
+            results.style.opacity = 0;
+            let opacity = 0;
+            const fadeIn = setInterval(() => {
+                if (opacity >= 1) {
+                    clearInterval(fadeIn);
+                }
+                results.style.opacity = opacity;
+                opacity += 0.1;
+            }, 50);
+        }
+
+        // Permitir envío con Enter
+        document.getElementById('socialInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                shareSocial();
+            }
+        });
+
+        // Limpiar y mostrar links al cargar la página
+        cleanExpiredLinks();
+        displaySharedLinks();
+
+        // Verificar links expirados cada minuto
+        setInterval(displaySharedLinks, 60000);
+    </script>
+</body>
+</html>
